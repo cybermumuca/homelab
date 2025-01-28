@@ -1,0 +1,60 @@
+version: '3.9'
+
+volumes:
+  portainer_data:
+  dashy_data:
+  watchtower_data:
+  uptime_kuma_data:
+
+services:
+  portainer:
+    image: portainer/portainer-ce:latest
+    container_name: portainer
+    restart: unless-stopped
+    volumes:
+      - portainer_data:/data
+      - /var/run/docker.sock:/var/run/docker.sock
+    ports:
+      - '9000:9000'
+
+  dashy:
+    image: lissy93/dashy:latest
+    container_name: dashy
+    volumes:
+      - /home/cybermumuca/dashy:/app/user-data
+    ports:
+      - '8080:8080'
+    environment:
+      - NODE_ENV=production
+      - UID=1000
+      - GID=1000
+    restart: unless-stopped
+    healthcheck:
+      test: ['CMD', 'node', '/app/services/healthcheck']
+      interval: 1m30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  watchtower:
+    image: containrrr/watchtower:latest
+    container_name: watchtower
+    restart: unless-stopped
+    environment:
+      - WATCHTOWER_POLL_INTERVAL=3600
+      - WATCHTOWER_CLEANUP=true
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /home/cybermumuca/watchtower:/config
+    cap_add:
+      - NET_RAW
+      - SETUID
+
+  uptime-kuma:
+    image: louislam/uptime-kuma:1
+    container_name: uptime-kuma
+    restart: unless-stopped
+    ports:
+      - '3001:3001'
+    volumes:
+      - /home/cybermumuca/uptime-kuma:/app/data

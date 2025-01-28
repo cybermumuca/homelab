@@ -1,0 +1,42 @@
+version: '3.9'
+
+services:
+  cloudflared:
+    image: visibilityspots/cloudflared:latest
+    container_name: cloudflared
+    restart: unless-stopped
+    environment:
+      - UPSTREAM1=https://1.1.1.1/dns-query
+      - UPSTREAM2=https://1.0.0.1/dns-query
+      - PORT=5054
+      - ADDRESS=0.0.0.0
+      - METRICS=127.0.0.1:8088
+    ports:
+      - "5054:5054"
+
+  pihole:
+    image: pihole/pihole:latest
+    container_name: pihole
+    restart: unless-stopped
+    depends_on:
+      - cloudflared
+    environment:
+      - DNSMASQ_USER=pihole
+      - WEBPASSWORD=7YG^k&#EjM^6zgB*vRTswGR7T
+      - TZ=America/Sao_Paulo
+      - PIHOLE_DNS_=127.0.0.1#5054
+      - WEB_PORT=8053
+    volumes:
+      - /home/cybermumuca/dnsmasq.d:/etc/dnsmasq.d
+      - /home/cybermumuca/pihole:/etc/pihole
+    ports:
+      - "53:53/tcp"
+      - "53:53/udp"
+      - "8053:8053"
+    cap_add:
+      - NET_RAW
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8053/admin"]
+      interval: 30s
+      retries: 3
+      start_period: 10s
